@@ -10,6 +10,7 @@ namespace DeadFileDetector
     {
         static void Main(string[] args)
         {
+            // this is a new comment
         }
     }
 }

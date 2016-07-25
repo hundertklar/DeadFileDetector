@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadFileDetector", "DeadFileDetector\DeadFileDetector.csproj", "{644976EA-16C8-40F2-8671-A78B5C1EEB25}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{58E9D0B5-B452-4634-AF9E-65F3B5DB3AB4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{644976EA-16C8-40F2-8671-A78B5C1EEB25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{644976EA-16C8-40F2-8671-A78B5C1EEB25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{644976EA-16C8-40F2-8671-A78B5C1EEB25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58E9D0B5-B452-4634-AF9E-65F3B5DB3AB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58E9D0B5-B452-4634-AF9E-65F3B5DB3AB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58E9D0B5-B452-4634-AF9E-65F3B5DB3AB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58E9D0B5-B452-4634-AF9E-65F3B5DB3AB4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

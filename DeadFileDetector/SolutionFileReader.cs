@@ -24,7 +24,7 @@ namespace DeadFileDetector
         {
             if (stream == null)
             {
-                throw new ArgumentNullException("test123");
+                throw new ArgumentNullException("Null Exception");
             }
 
             this.stream = stream;

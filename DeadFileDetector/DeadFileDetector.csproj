@@ -51,8 +51,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApplicationException.cs" />
+    <Compile Include="ApplicationExitCode.cs" />
     <Compile Include="DeterminateUnreferencedFiles.cs" />
     <Compile Include="IProjectFileReader.cs" />
+    <Compile Include="IUnreferencedFileDetector.cs" />
     <Compile Include="SolutionFileReader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProjectFileReader.cs" />

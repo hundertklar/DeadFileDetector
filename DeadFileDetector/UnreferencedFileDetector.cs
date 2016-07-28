@@ -101,8 +101,21 @@ namespace DeadFileDetector
                 }
             }
 
-            return unreferencedFilesAndDirectories.OrderBy(x => Path.GetExtension(x));
+            return unreferencedFilesAndDirectories.OrderBy(x => GetFolderCount(x) * -1 + (Path.GetFileName(x).Contains('.') ? 1 : 0)).ThenBy(x => x);
 
+        }
+
+        private static int GetFolderCount(string path)
+        {
+            int i = 0;
+
+            while (path != string.Empty)
+            {
+                path = Path.GetDirectoryName(path);
+                i++;
+            }
+
+            return i;
         }
 
         private static IEnumerable<string> GetAllSubdirectoriesExceptProjectDir(string path, string projectDirectory)

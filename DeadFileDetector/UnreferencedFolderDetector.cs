@@ -12,7 +12,7 @@ namespace DeadFileDetector
 {
     class UnreferencedFolderDetector
     {
-        private readonly static string[] IgnoredFolders = new string[] { ".nuget"};
+        private readonly static string[] IgnoredFolders = new string[] { ".nuget", "packages"};
 
         private readonly IFileSystem filesystem;
 

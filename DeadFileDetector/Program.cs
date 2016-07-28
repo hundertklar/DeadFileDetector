@@ -30,6 +30,8 @@ namespace DeadFileDetector
                 {
                     string solutionFilePath = args[0];
 
+                    bool deleteFiles = args.Any(x => string.Equals(x, "-delete", StringComparison.OrdinalIgnoreCase));
+
                     if (!File.Exists(solutionFilePath))
                     {
                         throw new ApplicationException("Specified solution file not found.", ApplicationExitCode.FileNotFound);
@@ -51,7 +53,7 @@ namespace DeadFileDetector
                         SolutionFileReader solutionFileReader = new SolutionFileReader(solutionFileStream);
 
                         var projectFiles = solutionFileReader.ReadReferencedProjectFiles().ToList();
-                        
+
                         Console.WriteLine();
                         Console.WriteLine("Determining unreferenced solution folders:");
                         Console.WriteLine();
@@ -62,9 +64,39 @@ namespace DeadFileDetector
                         {
                             foreach (string unreferencedFolder in unreferencedFolders)
                             {
+                                bool deleted = false;
+
+                                if (deleteFiles)
+                                {
+                                    string absPath = Path.Combine(solutionDir, unreferencedFolder);
+
+                                    Directory.Delete(absPath, true);
+
+                                    deleted = !Directory.Exists(absPath);
+                                }
+
                                 unreferencedFolderCount++;
                                 Console.ForegroundColor = ConsoleColor.Magenta;
-                                Console.WriteLine(string.Format("{0}{1}", new string(IndentChar, 2), unreferencedFolder));
+                                Console.Write(string.Format("{0}{1}", new string(IndentChar, 2), unreferencedFolder));
+
+
+                                if (deleteFiles)
+                                {
+                                    Console.Write("\t");
+
+                                    if (deleted)
+                                    {
+                                        Console.ForegroundColor = ConsoleColor.Green;
+                                        Console.Write("deleted");
+                                    }
+                                    else
+                                    {
+                                        Console.ForegroundColor = ConsoleColor.Red;
+                                        Console.Write("not deleted");
+                                    }
+                                }
+
+                                Console.WriteLine();
                                 Console.ResetColor();
                             }
                         }
@@ -83,6 +115,12 @@ namespace DeadFileDetector
 
                         if (projectFiles.Any())
                         {
+                            Dictionary<string, IEnumerable<string>> dict = new Dictionary<string, IEnumerable<string>>();
+
+                            foreach (var projectFile in projectFiles)
+                            {
+                                dict[projectFile] = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFile).ToList();
+                            }
 
                             foreach (var projectFile in projectFiles)
                             {
@@ -90,7 +128,7 @@ namespace DeadFileDetector
                                 Console.WriteLine(string.Format("{0}{1}:", new string(IndentChar, 2), projectFile));
                                 Console.WriteLine();
 
-                                var unreferencedFiles = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFile).ToList();
+                                var unreferencedFiles = dict[projectFile];
 
                                 if (unreferencedFiles.Any())
                                 {
@@ -98,10 +136,50 @@ namespace DeadFileDetector
                                     {
                                         unreferencedFileCount++;
 
-                                        Console.ForegroundColor = ConsoleColor.Magenta;
-                                        Console.WriteLine(string.Format("{0}{1}", new string(IndentChar, 4), item));
-                                        Console.ResetColor();
+                                        bool deleted = false;
 
+                                        if (deleteFiles)
+                                        {
+                                            string absPath = Path.Combine(solutionDir, item);
+
+                                            if (Directory.Exists(absPath))
+                                            {
+                                                Directory.Delete(absPath, true);
+                                                deleted = !Directory.Exists(absPath);
+                                            }
+                                            else if (File.Exists(absPath))
+                                            {
+                                                File.Delete(absPath);
+                                                deleted = !File.Exists(absPath);
+                                            }
+                                            else
+                                            {
+                                                // because its deleted by the delete of the parent folder
+                                                deleted = true;
+                                            }
+                                        }
+
+                                        Console.ForegroundColor = ConsoleColor.Magenta;
+                                        Console.Write(string.Format("{0}{1}", new string(IndentChar, 4), item));
+
+                                        if (deleteFiles)
+                                        {
+                                            Console.CursorLeft = dict.SelectMany(x => x.Value).Max(x => x.Length) + 8;
+
+                                            if (deleted)
+                                            {
+                                                Console.ForegroundColor = ConsoleColor.Green;
+                                                Console.Write("deleted");
+                                            }
+                                            else
+                                            {
+                                                Console.ForegroundColor = ConsoleColor.Red;
+                                                Console.Write("not deleted");
+                                            }
+                                        }
+
+                                        Console.WriteLine();
+                                        Console.ResetColor();
                                     }
 
 
@@ -124,7 +202,7 @@ namespace DeadFileDetector
 
                         if (unreferencedFolderCount > 0 && unreferencedFileCount > 0)
                         {
-                            throw new ApplicationException(string.Format("{0} unreferenced files and {1} unreferenced solution folders found.", unreferencedFileCount, unreferencedFolderCount), ApplicationExitCode.UnreferencedSolutionFoldersAndFilesFound);                            
+                            throw new ApplicationException(string.Format("{0} unreferenced files and {1} unreferenced solution folders found.", unreferencedFileCount, unreferencedFolderCount), ApplicationExitCode.UnreferencedSolutionFoldersAndFilesFound);
                         }
 
                         if (unreferencedFileCount > 0)
@@ -202,7 +280,10 @@ namespace DeadFileDetector
             }
 
             Console.WriteLine();
-            Console.WriteLine("DeadFileDetector PathToTargetSolution");
+            Console.WriteLine("DeadFileDetector PathToTargetSolution [-delete]");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            Console.WriteLine("\t-delete: deletes the found files and folders");
         }
 
     }

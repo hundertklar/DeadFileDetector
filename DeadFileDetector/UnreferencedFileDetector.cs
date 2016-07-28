@@ -11,12 +11,19 @@ namespace DeadFileDetector
 {
     public class UnreferencedFileDetector : DeadFileDetector.IUnreferencedFileDetector
     {
+
+        //Ignored file extensions and ignored Folders 
         private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user", ".vcxproj", ".filters" };
         private readonly static string[] IgnoredFolders = new string[] { "bin", "obj" };
 
         IFileSystem fileSystem;
         private IProjectFileReader projectFileReader;
 
+        /// <summary>
+        /// Throws ArgumentNullException when either "fileSystem" or "projectFileReader" is null.
+        /// </summary>
+        /// <param name="fileSystem"></param>
+        /// <param name="projectFileReader"></param>
         public UnreferencedFileDetector(IFileSystem fileSystem, IProjectFileReader projectFileReader)
         {
             if (fileSystem == null)
@@ -35,7 +42,7 @@ namespace DeadFileDetector
 
         public IEnumerable<string> DeterminateUnreferenceFilesAndFolders(string solutionDirectory, params string[] projectFiles)
         {
-            HashSet<string> unreferencedFilesAndDirectories = new HashSet<string>();
+            Dictionary<string, string> unreferencedFilesAndDirectories = new Dictionary<string,string>();
 
             if (projectFiles != null
                 && projectFiles.Length != 0)
@@ -57,7 +64,7 @@ namespace DeadFileDetector
                     {
                         string relativePath = PathHelper.GetRelativePath(solutionDirectory, true, fileSystemEntry, true);
 
-                        unreferencedFilesAndDirectories.Add(relativePath);
+                        unreferencedFilesAndDirectories.Add(relativePath.ToUpper(), relativePath);
                     }
 
                     if (unreferencedFilesAndDirectories.Count > 0)
@@ -89,11 +96,11 @@ namespace DeadFileDetector
 
                                 }
 
-                                unreferencedFilesAndDirectories.Remove(relativePath);
+                                unreferencedFilesAndDirectories.Remove(relativePath.ToUpper());
 
                                 foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
                                 {
-                                    unreferencedFilesAndDirectories.Remove(subDir);
+                                    unreferencedFilesAndDirectories.Remove(subDir.ToUpper());
                                 }
                             }
                         }
@@ -101,7 +108,7 @@ namespace DeadFileDetector
                 }
             }
 
-            return unreferencedFilesAndDirectories.OrderBy(x => GetFolderCount(x) * -1 + (Path.GetFileName(x).Contains('.') ? 1 : 0)).ThenBy(x => x);
+            return unreferencedFilesAndDirectories.Select(x => x.Value).OrderBy(x => GetFolderCount(x) * -1 + (Path.GetFileName(x).Contains('.') ? 1 : 0)).ThenBy(x => x);
 
         }
 

@@ -11,17 +11,14 @@ namespace DeadFileDetector
 {
     public class UnreferencedFileDetector : DeadFileDetector.IUnreferencedFileDetector
     {
-        private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user"};
+        private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user", ".vcxproj", ".filters" };
         private readonly static string[] IgnoredFolders = new string[] { "bin", "obj" };
 
         IFileSystem fileSystem;
         private IProjectFileReader projectFileReader;
-        private IFileSystem fileSystemMock;
-        private FileSystem fileSystem1;
 
         public UnreferencedFileDetector(IFileSystem fileSystem, IProjectFileReader projectFileReader)
         {
-
             if (fileSystem == null)
             {
                 throw new ArgumentNullException("fileSystem");
@@ -36,7 +33,7 @@ namespace DeadFileDetector
             this.projectFileReader = projectFileReader;
         }
 
-        public IEnumerable<string> DeterminateUnreferenceFilesAndFolders(string slnDir, params string[] projectFiles)
+        public IEnumerable<string> DeterminateUnreferenceFilesAndFolders(string solutionDirectory, params string[] projectFiles)
         {
             HashSet<string> unreferencedFilesAndDirectories = new HashSet<string>();
 
@@ -45,20 +42,22 @@ namespace DeadFileDetector
             {
                 foreach (string projectFile in projectFiles)
                 {
-                    string absolutProjectFilePath = Path.Combine(slnDir, projectFile);
+                    string absolutProjectFilePath = Path.Combine(solutionDirectory, projectFile);
 
-                    string projectFileDir = Path.GetDirectoryName(absolutProjectFilePath);
+                    string projectFileDirectory = Path.GetDirectoryName(absolutProjectFilePath);
 
                     string searchPattern = "*";
 
                     // Collect all files from project directory
                     IEnumerable<string> fileSystemEntries = fileSystem.Directory
-                                                            .EnumerateFileSystemEntries(projectFileDir, searchPattern, SearchOption.AllDirectories)
+                                                            .EnumerateFileSystemEntries(projectFileDirectory, searchPattern, SearchOption.AllDirectories)
                                                             .Where(s => this.Is(s));
 
                     foreach (string fileSystemEntry in fileSystemEntries)
                     {
-                        unreferencedFilesAndDirectories.Add(fileSystemEntry);
+                        string relativePath = PathHelper.GetRelativePath(solutionDirectory, true, fileSystemEntry, true);
+
+                        unreferencedFilesAndDirectories.Add(relativePath);
                     }
 
                     if (unreferencedFilesAndDirectories.Count > 0)
@@ -66,30 +65,38 @@ namespace DeadFileDetector
                         // Find all unreferenced files from project
                         using (Stream projectFileStream = this.fileSystem.File.OpenRead(absolutProjectFilePath))
                         {
-                            string absolutePathWithoutFileName = Path.GetDirectoryName(absolutProjectFilePath);
-
                             IEnumerable<string> referencedFiles = projectFileReader.ReadReferencedFiles(projectFileStream);
 
                             foreach (var referencedFile in referencedFiles)
                             {
-                                string combinedFilePaths = Path.Combine(absolutePathWithoutFileName, referencedFile);
-                                unreferencedFilesAndDirectories.Remove(combinedFilePaths);
+                                string relativePath = string.Empty;
 
-                                foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(combinedFilePaths, projectFileDir))
+                                if (!Path.IsPathRooted(referencedFile))
+                                {
+                                    if (Path.IsPathRooted(projectFile))
+                                    {
+                                        relativePath = Path.Combine(projectFile, referencedFile);
+                                    }
+                                    else
+                                    {
+                                        if (!projectFile.StartsWith(".\\"))
+                                        {
+                                            relativePath = ".\\";
+                                        }
+
+                                        relativePath = Path.Combine(relativePath + Path.GetDirectoryName(projectFile) , referencedFile);
+                                    }
+
+                                }
+
+                                unreferencedFilesAndDirectories.Remove(relativePath);
+
+                                foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
                                 {
                                     unreferencedFilesAndDirectories.Remove(subDir);
                                 }
                             }
-
-                            //foreach (var item in unreferencedFilesAndDirectories)
-                            //{
-                            //    int relativePathStartIndex = item.IndexOf("Repos");
-                            //    string substring = item.Substring(relativePathStartIndex);
-                            //    string relativePath = @"..\..\" + substring;
-                            //}
-
                         }
-
                     }
                 }
             }
@@ -98,15 +105,15 @@ namespace DeadFileDetector
 
         }
 
-        private static IEnumerable<string> GetAllSubdirectoriesExceptProjectDir(string path, string projectDir)
+        private static IEnumerable<string> GetAllSubdirectoriesExceptProjectDir(string path, string projectDirectory)
         {
             var folderPath = Path.GetDirectoryName(path);
 
-            if (!string.IsNullOrWhiteSpace(folderPath) && !string.Equals(folderPath, projectDir, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(folderPath) && !string.Equals(folderPath, projectDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 yield return folderPath;
 
-                foreach (var item in GetAllSubdirectoriesExceptProjectDir(folderPath, projectDir))
+                foreach (var item in GetAllSubdirectoriesExceptProjectDir(folderPath, projectDirectory))
                 {
                     yield return item;
                 }

@@ -89,9 +89,7 @@
   <ItemGroup>
     <EmbeddedResource Include="ProjectFiles\3Files.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Neuer Ordner\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

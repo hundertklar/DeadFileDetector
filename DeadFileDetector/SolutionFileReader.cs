@@ -15,7 +15,6 @@ namespace DeadFileDetector
     public class SolutionFileReader
     {
         private Stream stream;
-        
         /// <summary>
         /// Initalize a new instance of the <see cref="SolutionFileReader"/> class.
         /// </summary>
@@ -29,14 +28,14 @@ namespace DeadFileDetector
 
             this.stream = stream;
         }
-
         /// <summary>
         /// Reads referenced project files from the solution file stream.
         /// </summary>
         /// <returns>Relative project file paths.</returns>
-        public IEnumerable<string> ReadReferencedFiles()
+        public IEnumerable<string> ReadReferencedProjectFiles()
         {
             List<string> result = new List<string>();
+
             if (stream.CanRead)
             {
                 this.stream.Position = 0;
@@ -46,25 +45,16 @@ namespace DeadFileDetector
                 string streamContent = streamReader.ReadToEnd();
 
                 //Extracts relative project file paths from the solution file.
-                Regex fileDetection = new Regex("(?<=\",\\s\").+(?=\"\\,\\s\"\\{.{8}\\-.{4}\\-.{4}\\-.{4}\\-.{12}\\})");
+                Regex fileDetection = new Regex("(?<=\",\\s\").+(?<!\")\\..+(?=\"\\,\\s\"\\{.{8}\\-.{4}\\-.{4}\\-.{4}\\-.{12}\\})");
+
                 MatchCollection relativeProjectFilePaths = fileDetection.Matches(streamContent);
                 
                 foreach (Match relativeProjectFilePath in relativeProjectFilePaths)
                 {
                     result.Add(relativeProjectFilePath.Value);
                 }
-
-
-
-                //foreach (Match relativeProjectFilePath in relativeProjectFilePaths)
-                //{
-                //    yield return relativeProjectFilePath.Value;
-                //}
-
             }
-
             return result;
-
         }
     }
 }

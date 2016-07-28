@@ -25,7 +25,7 @@ namespace DeadFileDetector
 
                 string streamContent = streamReader.ReadToEnd();
 
-                Regex fileDetection = new Regex("(?<=EmbeddedResource Include=\"|Compile Include=\"|None Include=\"|Page Include=\"|Folder Include=\")(.+?)(?=\"(\\s/>|>|))");
+                Regex fileDetection = new Regex("(?<=EmbeddedResource Include=\"|Resource Include=\"|Compile Include=\"|ClInclude Include=\"|Resource Include=\"|None Include=\"|Content Include=\"|CodeAnalysisDictionary Include=\"|ApplicationDefinition Include=\"|Page Include=\"|Folder Include=\")(.+?)(?=\"(\\s/>|>|))|(?<=<ApplicationIcon>).+(?=</)");
                 MatchCollection matches = fileDetection.Matches(streamContent);
 
                 foreach (Match match in matches)

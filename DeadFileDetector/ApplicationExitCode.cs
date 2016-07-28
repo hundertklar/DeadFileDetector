@@ -27,5 +27,9 @@
 
 
         UnreferencedFilesFound = unchecked((int)0x80070003),
+
+        UnreferencedSolutionFoldersFound = unchecked((int)0x80070004),
+
+        UnreferencedSolutionFoldersAndFilesFound = unchecked((int)0x80070005),
     }
 }

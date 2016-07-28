@@ -32,7 +32,7 @@ namespace DeadFileDetector
 
                     if (!File.Exists(solutionFilePath))
                     {
-                        throw new ApplicationException("Specified soluten file not found.", ApplicationExitCode.FileNotFound);
+                        throw new ApplicationException("Specified solution file not found.", ApplicationExitCode.FileNotFound);
                     }
 
                     string solutionDir = Path.GetDirectoryName(solutionFilePath);
@@ -41,30 +41,56 @@ namespace DeadFileDetector
                     IProjectFileReader projectFileReader = new ProjectFileReader();
                     IUnreferencedFileDetector unreferencedFileDetector = new UnreferencedFileDetector(fileSystem, projectFileReader);
 
+                    UnreferencedFolderDetector unreferencedFolderDetector = new UnreferencedFolderDetector(fileSystem);
+
                     using (Stream solutionFileStream = fileSystem.File.OpenRead(solutionFilePath))
                     {
+                        int unreferencedFolderCount = 0;
+                        int unreferencedFileCount = 0;
+
                         SolutionFileReader solutionFileReader = new SolutionFileReader(solutionFileStream);
 
-                        var referencedFiles = solutionFileReader.ReadReferencedFiles().ToArray();
+                        var projectFiles = solutionFileReader.ReadReferencedProjectFiles().ToList();
+                        
+                        Console.WriteLine();
+                        Console.WriteLine("Determining unreferenced solution folders:");
+                        Console.WriteLine();
+
+                        string[] unreferencedFolders = unreferencedFolderDetector.DetectUnreferencedFolders(solutionDir, projectFiles).ToArray();
+
+                        if (unreferencedFolders.Any())
+                        {
+                            foreach (string unreferencedFolder in unreferencedFolders)
+                            {
+                                unreferencedFolderCount++;
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.WriteLine(string.Format("{0}{1}", new string(IndentChar, 2), unreferencedFolder));
+                                Console.ResetColor();
+                            }
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine(string.Format("{0}No unreferenced solution folders found.", new string(IndentChar, 4)));
+                            Console.ResetColor();
+                        }
 
 
-                        var detector = new UnreferencedFileDetector(fileSystem, projectFileReader); //detector anlegen
-
+                        var detector = new UnreferencedFileDetector(fileSystem, projectFileReader);
 
                         Console.WriteLine();
-                        Console.WriteLine("Determining referenct projects:");
+                        Console.WriteLine("Determining unreferenced projects:");
 
-                        if (referencedFiles.Any())
+                        if (projectFiles.Any())
                         {
-                            int unreferencedFileCount = 0;
 
-                            foreach (var projectFile in referencedFiles)
+                            foreach (var projectFile in projectFiles)
                             {
                                 Console.WriteLine();
                                 Console.WriteLine(string.Format("{0}{1}:", new string(IndentChar, 2), projectFile));
                                 Console.WriteLine();
 
-                                var unreferencedFiles = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFile).ToArray();
+                                var unreferencedFiles = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFile).ToList();
 
                                 if (unreferencedFiles.Any())
                                 {
@@ -73,23 +99,19 @@ namespace DeadFileDetector
                                         unreferencedFileCount++;
 
                                         Console.ForegroundColor = ConsoleColor.Magenta;
-                                        Console.WriteLine(string.Format("{0}{1}:", new string(IndentChar, 4), item));
+                                        Console.WriteLine(string.Format("{0}{1}", new string(IndentChar, 4), item));
                                         Console.ResetColor();
 
                                     }
+
+
                                 }
                                 else
                                 {
                                     Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.WriteLine(string.Format("{0}No unreferenced Files found.", new string(IndentChar, 4)));
+                                    Console.WriteLine(string.Format("{0}No unreferenced files found.", new string(IndentChar, 4)));
                                     Console.ResetColor();
                                 }
-
-                            }
-
-                            if (unreferencedFileCount > 0)
-                            {
-                                throw new ApplicationException(string.Format("{0} unreferenced files found.", unreferencedFileCount), ApplicationExitCode.UnreferencedFilesFound);
                             }
 
                         }
@@ -97,6 +119,22 @@ namespace DeadFileDetector
                         {
                             Console.WriteLine();
                             Console.WriteLine("No referenced projects found.");
+                        }
+
+
+                        if (unreferencedFolderCount > 0 && unreferencedFileCount > 0)
+                        {
+                            throw new ApplicationException(string.Format("{0} unreferenced files and {1} unreferenced solution folders found.", unreferencedFileCount, unreferencedFolderCount), ApplicationExitCode.UnreferencedSolutionFoldersAndFilesFound);                            
+                        }
+
+                        if (unreferencedFileCount > 0)
+                        {
+                            throw new ApplicationException(string.Format("{0} unreferenced files found.", unreferencedFileCount), ApplicationExitCode.UnreferencedFilesFound);
+                        }
+
+                        if (unreferencedFolderCount > 0)
+                        {
+                            throw new ApplicationException(string.Format("{0} unreferenced solution folders found.", unreferencedFolderCount), ApplicationExitCode.UnreferencedSolutionFoldersFound);
                         }
                     }
                 }
@@ -107,6 +145,8 @@ namespace DeadFileDetector
                 switch (ex.ExitCode)
                 {
                     case ApplicationExitCode.UnreferencedFilesFound:
+                    case ApplicationExitCode.UnreferencedSolutionFoldersFound:
+                    case ApplicationExitCode.UnreferencedSolutionFoldersAndFilesFound:
                         Console.ForegroundColor = ConsoleColor.Magenta;
                         Console.WriteLine();
                         Console.WriteLine(ex.Message);
@@ -159,7 +199,6 @@ namespace DeadFileDetector
                 Console.WriteLine();
                 Console.WriteLine(reason);
                 Console.ResetColor();
-
             }
 
             Console.WriteLine();
@@ -170,29 +209,12 @@ namespace DeadFileDetector
 
 }
 
-
-
 // ProjectFileReader anlegen +
 // Detektor anlegen +
 // projectFiles iterier
 // und project File path Detektor übergeben
-
 // Ergebnis vom Detektor speichern 
 // listen verbinden
 // liste ausgeben
 
-// IProjectFileReader projectFileReader = new ProjectFileReader();
 
-
-
-//string projectFile1 = @"DeadFileDetector\DeadFileDetector.csproj";
-
-////foreach (var item in detector.DeterminateUnreferenceFilesAndFolders(slnDir, projectFile1))
-//{
-//    int relativePathStartIndex = item.IndexOf("Repos");
-//    string substring = item.Substring(relativePathStartIndex);
-//    string relativePath = @"..\..\" + substring;
-
-//    Console.WriteLine(relativePath);
-//}
-//Console.ReadKey();

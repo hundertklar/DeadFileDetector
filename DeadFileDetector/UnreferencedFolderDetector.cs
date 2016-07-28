@@ -18,16 +18,11 @@ namespace DeadFileDetector
 
         public UnreferencedFolderDetector(IFileSystem filesystem)
         {
-            // todo: argument check
-
             this.filesystem = filesystem;
         }
 
         public IEnumerable<string> DetectUnreferencedFolders(string slnDir, IEnumerable<string> referencedProjectFiles)
         {
-            // ermittle alle ordner in slnDir
-            // filter project folders
-            // exclude .nuget
 
             HashSet<string> referencedFolder = new HashSet<string>();
 

@@ -38,11 +38,12 @@ namespace DeadFileDetector
                     }
 
                     string solutionDir = Path.GetDirectoryName(solutionFilePath);
-
+                    
+                    
+                    //Determines unreferenced folders and files
                     IFileSystem fileSystem = new FileSystem();
                     IProjectFileReader projectFileReader = new ProjectFileReader();
                     IUnreferencedFileDetector unreferencedFileDetector = new UnreferencedFileDetector(fileSystem, projectFileReader);
-
                     UnreferencedFolderDetector unreferencedFolderDetector = new UnreferencedFolderDetector(fileSystem);
 
                     using (Stream solutionFileStream = fileSystem.File.OpenRead(solutionFilePath))
@@ -285,17 +286,7 @@ namespace DeadFileDetector
             Console.WriteLine("Options:");
             Console.WriteLine("\t-delete: deletes the found files and folders");
         }
-
     }
-
 }
-
-// ProjectFileReader anlegen +
-// Detektor anlegen +
-// projectFiles iterier
-// und project File path Detektor übergeben
-// Ergebnis vom Detektor speichern 
-// listen verbinden
-// liste ausgeben
 
 

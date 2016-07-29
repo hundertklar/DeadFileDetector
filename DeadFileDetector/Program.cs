@@ -40,17 +40,20 @@ namespace DeadFileDetector
                     string solutionDir = Path.GetDirectoryName(solutionFilePath);
                     
                     
-                    //Determines unreferenced folders and files
+                    //New instance of IFileSystem/ProjectFileReader/IUnreferencedFileDetector/UnreferencedFolderDetector
                     IFileSystem fileSystem = new FileSystem();
                     IProjectFileReader projectFileReader = new ProjectFileReader();
                     IUnreferencedFileDetector unreferencedFileDetector = new UnreferencedFileDetector(fileSystem, projectFileReader);
                     UnreferencedFolderDetector unreferencedFolderDetector = new UnreferencedFolderDetector(fileSystem);
 
+
+                    //Opens and reads a solution file to determine unreferenced files and folders
                     using (Stream solutionFileStream = fileSystem.File.OpenRead(solutionFilePath))
                     {
                         int unreferencedFolderCount = 0;
                         int unreferencedFileCount = 0;
 
+                        //New instance of SolutionFileReader
                         SolutionFileReader solutionFileReader = new SolutionFileReader(solutionFileStream);
 
                         var projectFiles = solutionFileReader.ReadReferencedProjectFiles().ToList();
@@ -80,7 +83,7 @@ namespace DeadFileDetector
                                 Console.ForegroundColor = ConsoleColor.Magenta;
                                 Console.Write(string.Format("{0}{1}", new string(IndentChar, 2), unreferencedFolder));
 
-
+                                //Determined files are getting deleted
                                 if (deleteFiles)
                                 {
                                     Console.Write("\t");
@@ -139,6 +142,7 @@ namespace DeadFileDetector
 
                                         bool deleted = false;
 
+                                        //Determined folders are getting deleted
                                         if (deleteFiles)
                                         {
                                             string absPath = Path.Combine(solutionDir, item);

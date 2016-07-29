@@ -11,7 +11,7 @@ namespace DeadFileDetector
     public static class PathHelper
     {    
         /// <summary>
-        /// Takes to paths and makes the relative path out of it
+        /// Stringbuilder which takes two string paths and combines them into one relative path
         /// </summary>
         /// <param name="path1"></param>
         /// <param name="isPath1AFolder"></param>

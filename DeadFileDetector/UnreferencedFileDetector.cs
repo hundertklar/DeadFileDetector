@@ -12,7 +12,7 @@ namespace DeadFileDetector
     public class UnreferencedFileDetector : DeadFileDetector.IUnreferencedFileDetector
     {
 
-        //Ignored file extensions and ignored Folders 
+        //Ignored file extensions and ignored Folders
         private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user", ".vcxproj", ".filters" };
         private readonly static string[] IgnoredFolders = new string[] { "bin", "obj" };
 
@@ -51,56 +51,59 @@ namespace DeadFileDetector
                 {
                     string absolutProjectFilePath = Path.Combine(solutionDirectory, projectFile);
 
-                    string projectFileDirectory = Path.GetDirectoryName(absolutProjectFilePath);
-
-                    string searchPattern = "*";
-
-                    // Collect all files from project directory
-                    IEnumerable<string> fileSystemEntries = fileSystem.Directory
-                                                            .EnumerateFileSystemEntries(projectFileDirectory, searchPattern, SearchOption.AllDirectories)
-                                                            .Where(s => this.Is(s));
-
-                    foreach (string fileSystemEntry in fileSystemEntries)
+                    if (File.Exists(absolutProjectFilePath))
                     {
-                        string relativePath = PathHelper.GetRelativePath(solutionDirectory, true, fileSystemEntry, true);
+                        string projectFileDirectory = Path.GetDirectoryName(absolutProjectFilePath);
 
-                        unreferencedFilesAndDirectories.Add(relativePath.ToUpper(), relativePath);
-                    }
+                        string searchPattern = "*";
 
-                    if (unreferencedFilesAndDirectories.Count > 0)
-                    {
-                        // Find all unreferenced files from project
-                        using (Stream projectFileStream = this.fileSystem.File.OpenRead(absolutProjectFilePath))
+                        // Collect all files from project directory
+                        IEnumerable<string> fileSystemEntries = fileSystem.Directory
+                                                                .EnumerateFileSystemEntries(projectFileDirectory, searchPattern, SearchOption.AllDirectories)
+                                                                .Where(s => this.Is(s));
+
+                        foreach (string fileSystemEntry in fileSystemEntries)
                         {
-                            IEnumerable<string> referencedFiles = projectFileReader.ReadReferencedFiles(projectFileStream);
+                            string relativePath = PathHelper.GetRelativePath(solutionDirectory, true, fileSystemEntry, true);
 
-                            foreach (var referencedFile in referencedFiles)
+                            unreferencedFilesAndDirectories.Add(relativePath.ToUpper(), relativePath);
+                        }
+
+                        if (unreferencedFilesAndDirectories.Count > 0)
+                        {
+                            // Find all unreferenced files from project
+                            using (Stream projectFileStream = this.fileSystem.File.OpenRead(absolutProjectFilePath))
                             {
-                                string relativePath = string.Empty;
+                                IEnumerable<string> referencedFiles = projectFileReader.ReadReferencedFiles(projectFileStream);
 
-                                if (!Path.IsPathRooted(referencedFile))
+                                foreach (var referencedFile in referencedFiles)
                                 {
-                                    if (Path.IsPathRooted(projectFile))
+                                    string relativePath = string.Empty;
+
+                                    if (!Path.IsPathRooted(referencedFile))
                                     {
-                                        relativePath = Path.Combine(projectFile, referencedFile);
-                                    }
-                                    else
-                                    {
-                                        if (!projectFile.StartsWith(".\\"))
+                                        if (Path.IsPathRooted(projectFile))
                                         {
-                                            relativePath = ".\\";
+                                            relativePath = Path.Combine(projectFile, referencedFile);
+                                        }
+                                        else
+                                        {
+                                            if (!projectFile.StartsWith(".\\"))
+                                            {
+                                                relativePath = ".\\";
+                                            }
+
+                                            relativePath = Path.Combine(relativePath + Path.GetDirectoryName(projectFile), referencedFile);
                                         }
 
-                                        relativePath = Path.Combine(relativePath + Path.GetDirectoryName(projectFile) , referencedFile);
                                     }
 
-                                }
+                                    unreferencedFilesAndDirectories.Remove(relativePath.ToUpper());
 
-                                unreferencedFilesAndDirectories.Remove(relativePath.ToUpper());
-
-                                foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
-                                {
-                                    unreferencedFilesAndDirectories.Remove(subDir.ToUpper());
+                                    foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
+                                    {
+                                        unreferencedFilesAndDirectories.Remove(subDir.ToUpper());
+                                    }
                                 }
                             }
                         }

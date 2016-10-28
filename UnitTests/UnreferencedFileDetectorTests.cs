@@ -55,7 +55,7 @@ namespace UnitTests
 
             var detector = new UnreferencedFileDetector(this.fileSystemMock, this.projectFileReader);
 
-            IEnumerable<string> unreferencedFilesAndFolders = detector.DeterminateUnreferenceFilesAndFolders(solutionDir);
+            IDictionary<string, IEnumerable<string>> unreferencedFilesAndFolders = detector.DeterminateUnreferenceFilesAndFolders(solutionDir);
 
             unreferencedFilesAndFolders.Should().BeEmpty();
         }
@@ -65,7 +65,7 @@ namespace UnitTests
         {
             var detector = new UnreferencedFileDetector(this.fileSystemMock, this.projectFileReader);
 
-            IEnumerable<string> unreferencedFilesAndFolders = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, null);
+            IDictionary<string, IEnumerable<string>> unreferencedFilesAndFolders = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, null);
 
             unreferencedFilesAndFolders.Should().BeEmpty();
         }
@@ -86,7 +86,7 @@ namespace UnitTests
             var detector = new UnreferencedFileDetector(this.fileSystemMock, this.projectFileReader);
 
             // Act
-            IEnumerable<string> actualResult = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, relativeProjectPath);
+            IDictionary<string, IEnumerable<string>> actualResult = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, relativeProjectPath);
 
             // Assertion
             this.directoryBaseMock
@@ -136,15 +136,15 @@ namespace UnitTests
             var detector = new UnreferencedFileDetector(mockFileSystem, this.projectFileReader);
 
             // Act
-            IEnumerable<string> actualResult = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, relativeProjectFilePath);
+            IDictionary<string, IEnumerable<string>> actualResult = detector.DeterminateUnreferenceFilesAndFolders(this.solutionDir, relativeProjectFilePath);
 
 
 
             // Assertion
-            actualResult.Should().Contain(shouldBeFound1);
-            actualResult.Should().Contain(shouldBeFound2);    
-            actualResult.Should().Contain(shouldBeFound3);
-            actualResult.Should().Contain(shouldBeFound4);
+            actualResult[relativeProjectFilePath].Should().Contain(shouldBeFound1);
+            actualResult[relativeProjectFilePath].Should().Contain(shouldBeFound2);
+            actualResult[relativeProjectFilePath].Should().Contain(shouldBeFound3);
+            actualResult[relativeProjectFilePath].Should().Contain(shouldBeFound4);
 
         }
 

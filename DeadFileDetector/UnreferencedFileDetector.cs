@@ -40,18 +40,22 @@ namespace DeadFileDetector
             this.projectFileReader = projectFileReader;
         }
 
-        public IEnumerable<string> DeterminateUnreferenceFilesAndFolders(string solutionDirectory, params string[] projectFiles)
+        public IDictionary<string, IEnumerable<string>> DeterminateUnreferenceFilesAndFolders(string solutionDirectory, params string[] projectFiles)
         {
-            Dictionary<string, string> unreferencedFilesAndDirectories = new Dictionary<string,string>();
+            Dictionary<string, IEnumerable<CaseIgnoredString>> unreferencedFilesAndDirectoriesPerProject = new Dictionary<string, IEnumerable<CaseIgnoredString>>();
 
             if (projectFiles != null
                 && projectFiles.Length != 0)
             {
                 foreach (string projectFile in projectFiles)
                 {
+                    HashSet<CaseIgnoredString> unreferencedFilesAndDirectories = new HashSet<CaseIgnoredString>();
+
+                    unreferencedFilesAndDirectoriesPerProject.Add(projectFile, unreferencedFilesAndDirectories);
+
                     string absolutProjectFilePath = Path.Combine(solutionDirectory, projectFile);
 
-                    if (File.Exists(absolutProjectFilePath))
+                    if (this.fileSystem.File.Exists(absolutProjectFilePath))
                     {
                         string projectFileDirectory = Path.GetDirectoryName(absolutProjectFilePath);
 
@@ -66,43 +70,55 @@ namespace DeadFileDetector
                         {
                             string relativePath = PathHelper.GetRelativePath(solutionDirectory, true, fileSystemEntry, true);
 
-                            unreferencedFilesAndDirectories.Add(relativePath.ToUpper(), relativePath);
+                            unreferencedFilesAndDirectories.Add(new CaseIgnoredString(relativePath));
                         }
+                    }
+                }
 
-                        if (unreferencedFilesAndDirectories.Count > 0)
+                foreach (string projectFile in projectFiles)
+                {
+                    string absolutProjectFilePath = Path.Combine(solutionDirectory, projectFile);
+
+                    if (this.fileSystem.File.Exists(absolutProjectFilePath))
+                    {
+                        string projectFileDirectory = Path.GetDirectoryName(absolutProjectFilePath);
+
+                        // Find all unreferenced files from project
+                        using (Stream projectFileStream = this.fileSystem.File.OpenRead(absolutProjectFilePath))
                         {
-                            // Find all unreferenced files from project
-                            using (Stream projectFileStream = this.fileSystem.File.OpenRead(absolutProjectFilePath))
+                            IEnumerable<string> referencedFiles = projectFileReader.ReadReferencedFiles(projectFileStream);
+
+                            foreach (var referencedFile in referencedFiles)
                             {
-                                IEnumerable<string> referencedFiles = projectFileReader.ReadReferencedFiles(projectFileStream);
+                                string relativePath = string.Empty;
 
-                                foreach (var referencedFile in referencedFiles)
+                                if (!Path.IsPathRooted(referencedFile))
                                 {
-                                    string relativePath = string.Empty;
-
-                                    if (!Path.IsPathRooted(referencedFile))
+                                    if (Path.IsPathRooted(projectFile))
                                     {
-                                        if (Path.IsPathRooted(projectFile))
-                                        {
-                                            relativePath = Path.Combine(projectFile, referencedFile);
-                                        }
-                                        else
-                                        {
-                                            if (!projectFile.StartsWith(".\\"))
-                                            {
-                                                relativePath = ".\\";
-                                            }
-
-                                            relativePath = Path.Combine(relativePath + Path.GetDirectoryName(projectFile), referencedFile);
-                                        }
-
+                                        relativePath = Path.Combine(projectFile, referencedFile);
                                     }
-
-                                    unreferencedFilesAndDirectories.Remove(relativePath.ToUpper());
-
-                                    foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
+                                    else
                                     {
-                                        unreferencedFilesAndDirectories.Remove(subDir.ToUpper());
+                                        if (!projectFile.StartsWith(".\\"))
+                                        {
+                                            relativePath = ".\\";
+                                        }
+
+                                        relativePath = Path.Combine(relativePath + Path.GetDirectoryName(projectFile), referencedFile);
+                                    }
+                                }
+
+                                foreach (HashSet<CaseIgnoredString> curUnreferencedFilesAndDirectories in unreferencedFilesAndDirectoriesPerProject.Values)
+                                {
+                                    curUnreferencedFilesAndDirectories.Remove(new CaseIgnoredString(relativePath));
+                                }
+
+                                foreach (string subDir in GetAllSubdirectoriesExceptProjectDir(relativePath, projectFileDirectory))
+                                {
+                                    foreach (HashSet<CaseIgnoredString> curUnreferencedFilesAndDirectories in unreferencedFilesAndDirectoriesPerProject.Values)
+                                    {
+                                        curUnreferencedFilesAndDirectories.Remove(new CaseIgnoredString(subDir));
                                     }
                                 }
                             }
@@ -111,8 +127,14 @@ namespace DeadFileDetector
                 }
             }
 
-            return unreferencedFilesAndDirectories.Select(x => x.Value).OrderBy(x => GetFolderCount(x) * -1 + (Path.GetFileName(x).Contains('.') ? 1 : 0)).ThenBy(x => x);
+            Dictionary<string, IEnumerable<string>> returnValue = new Dictionary<string, IEnumerable<string>>();
 
+            foreach (var item in unreferencedFilesAndDirectoriesPerProject)
+            {
+                returnValue.Add(item.Key, item.Value.Select(x => x.ToString()));
+            }
+
+            return returnValue;
         }
 
         private static int GetFolderCount(string path)
@@ -148,6 +170,35 @@ namespace DeadFileDetector
             return !IgnoredFileExtensions.Contains(Path.GetExtension(fileSystemEntry))
                && !(IgnoredFolders.Any(f => fileSystemEntry.EndsWith(Path.DirectorySeparatorChar + f, StringComparison.OrdinalIgnoreCase)
                            || fileSystemEntry.Contains(Path.DirectorySeparatorChar + f + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        private class CaseIgnoredString
+        {
+            private readonly string value;
+
+            private readonly int hashCode;
+
+            public CaseIgnoredString(string value)
+            {
+                this.value = value;
+                this.hashCode = value.ToLower().GetHashCode();
+            }
+
+            public override bool Equals(object obj)
+            {
+                return (obj is string && string.Equals((string)obj, this.value, StringComparison.OrdinalIgnoreCase))
+                    || (obj is CaseIgnoredString && string.Equals(obj.ToString(), this.value, StringComparison.OrdinalIgnoreCase));
+            }
+
+            public override int GetHashCode()
+            {
+                return this.hashCode;
+            }
+
+            public override string ToString()
+            {
+                return this.value.ToString();
+            }
         }
 
     }

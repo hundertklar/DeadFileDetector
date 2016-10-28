@@ -38,8 +38,8 @@ namespace DeadFileDetector
                     }
 
                     string solutionDir = Path.GetDirectoryName(solutionFilePath);
-                    
-                    
+
+
                     //New instance of IFileSystem/ProjectFileReader/IUnreferencedFileDetector/UnreferencedFolderDetector
                     IFileSystem fileSystem = new FileSystem();
                     IProjectFileReader projectFileReader = new ProjectFileReader();
@@ -119,12 +119,7 @@ namespace DeadFileDetector
 
                         if (projectFiles.Any())
                         {
-                            Dictionary<string, IEnumerable<string>> dict = new Dictionary<string, IEnumerable<string>>();
-
-                            foreach (var projectFile in projectFiles)
-                            {
-                                dict[projectFile] = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFile).ToList();
-                            }
+                            IDictionary<string, IEnumerable<string>> dict = detector.DeterminateUnreferenceFilesAndFolders(solutionDir, projectFiles.ToArray());
 
                             foreach (var projectFile in projectFiles)
                             {

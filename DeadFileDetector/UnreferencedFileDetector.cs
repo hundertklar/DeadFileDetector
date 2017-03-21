@@ -13,7 +13,7 @@ namespace DeadFileDetector
     {
 
         //Ignored file extensions and ignored Folders
-        private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user", ".vcxproj", ".filters" };
+        private readonly static string[] IgnoredFileExtensions = new string[] { ".suo", ".vspscc", ".sln", ".csproj", ".user", ".vcxproj", ".wixproj", ".filters" };
         private readonly static string[] IgnoredFolders = new string[] { "bin", "obj" };
 
         IFileSystem fileSystem;
